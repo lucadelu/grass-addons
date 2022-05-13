@@ -52,6 +52,7 @@ import grass.script as grass
 
 inarray = None
 
+
 def forloop(arr):
     return [np.array(np.sum(np.abs(y - inarray))) for y in arr]
 
