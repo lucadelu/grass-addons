@@ -52,7 +52,6 @@ import grass.script as grass
 
 inarray = None
 
-
 def forloop(arr):
     return [np.array(np.sum(np.abs(y - inarray))) for y in arr]
 
@@ -68,29 +67,29 @@ def main():
     map_in.open("r")
 
     iarray = np.array(map_in)
-    bolnan = [iarray == -2147483648]
+    bolnan = [iarray != -2147483648]
     # iarray[bolnan] = np.nan
-    number = np.count_nonzero(iarray)
+    number = np.count_nonzero(iarray[tuple(bolnan)])
     number2 = pow(number, 2)
 
     if nprocs == 1:
         # vals = [np.abs(y - x) for x in inarray.flat for y in inarray.flat]
         # vals = np.array([np.abs(y - inarray.flat) for y in inarray.flat])
         out = []
-        for y in iarray.flat:
-            out.append(np.sum(np.abs(y - iarray.flat)))
+        for y in iarray[tuple(bolnan)].flat:
+            out.append(np.sum(np.abs(y - iarray[tuple(bolnan)].flat)))
         vals = np.array(out)
     elif nprocs > 1:
         if map_in.mtype == "CELL":
             atype = "I"
-            ntype = np.uint8
+            ntype = np.int32
         elif map_in.mtype == "FCELL":
             atype = "f"
             ntype = np.float
         else:
             atype = "d"
             ntype = np.double
-        inarray = mp.Array(atype, iarray.flat)
+        inarray = mp.Array(atype, iarray[tuple(bolnan)].flat)
         manager = mp.Manager()
         vals = manager.list()
         pool = mp.Pool(nprocs)
