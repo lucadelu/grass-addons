@@ -50,16 +50,15 @@ import multiprocessing as mp
 import numpy as np
 import grass.script as grass
 
-array = None
+inarray = None
 
 
-def forloop(x, v):
-    v.extend([np.abs(x - y) for y in array.flat])
+def forloop(arr):
+    return [np.array(np.sum(np.abs(y - inarray))) for y in arr]
 
 
 def main():
-    global array
-    global vals
+    global inarray
     from grass.pygrass.raster import RasterRow
 
     nprocs = int(options["nprocs"])
@@ -67,22 +66,36 @@ def main():
         grass.fatal("nprocs value should >= 1")
     map_in = RasterRow(options["input"])
     map_in.open("r")
-    array = np.array(map_in)
-    # array[array==-2147483648] = np.NaN
-    number = np.count_nonzero(array)
+
+    iarray = np.array(map_in)
+    bolnan = [iarray != -2147483648]
+    # iarray[bolnan] = np.nan
+    number = np.count_nonzero(iarray[tuple(bolnan)])
     number2 = pow(number, 2)
+
     if nprocs == 1:
-        vals = [np.abs(x - y) for x in array.flat for y in array.flat]
+        # vals = [np.abs(y - x) for x in inarray.flat for y in inarray.flat]
+        # vals = np.array([np.abs(y - inarray.flat) for y in inarray.flat])
+        out = []
+        for y in iarray[tuple(bolnan)].flat:
+            out.append(np.sum(np.abs(y - iarray[tuple(bolnan)].flat)))
+        vals = np.array(out)
     elif nprocs > 1:
         manager = mp.Manager()
-        vals = manager.list()
+        inarray = iarray[tuple(bolnan)]
         pool = mp.Pool(nprocs)
-        listarray = list(array.flat)
-        for l in listarray:
-            pool.apply_async(forloop, args=[l, vals])
+        arraysplit = np.array_split(inarray.flat, nprocs)
+        for arr in arraysplit:
+            out = pool.apply_async(forloop, args=[arr])
         pool.close()
-        # pool.join()
-    out = sum(vals) / number2
+        pool.join()
+    import pdb
+
+    pdb.set_trace()
+    print(out)
+    vals = np.concatenate(out.get())
+    print(vals)
+    out = np.sum(vals) / number2
     if flags["g"]:
         print(f"raoq={out}")
     else:
