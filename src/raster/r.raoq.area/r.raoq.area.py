@@ -72,13 +72,16 @@ def main():
     # iarray[bolnan] = np.nan
     number = np.count_nonzero(iarray[tuple(bolnan)])
     number2 = pow(number, 2)
-
+    arrayflat = iarray[tuple(bolnan)].flat
     if nprocs == 1:
         # vals = [np.abs(y - x) for x in inarray.flat for y in inarray.flat]
         # vals = np.array([np.abs(y - inarray.flat) for y in inarray.flat])
         out = []
-        for y in iarray[tuple(bolnan)].flat:
-            out.append(np.sum(np.abs(y - iarray[tuple(bolnan)].flat)))
+        x = 0
+        for y in arrayflat:
+            out.append(np.sum(np.abs(y - arrayflat)))
+            grass.percent(x, len(arrayflat), 3)
+            x += 1
         vals = np.array(out)
     elif nprocs > 1:
         if map_in.mtype == "CELL":
